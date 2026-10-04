@@ -49,3 +49,7 @@ Für nicht vertrauenswürdige Eingaben zusätzliche Betriebssystemlimits und Iso
 verwenden. Details: [englische Hauptdokumentation](../README.md).
 
 Tests: `PYTHONPATH=src python -m unittest discover -s tests -v`.
+
+CI testet Python 3.10–3.13 unter Linux und Python 3.12 unter Windows und macOS. Jeder Job baut ein Wheel, installiert es ohne Netzwerkzugriff in einer sauberen temporären virtuellen Umgebung und führt sämtliche Tests außerhalb des Quellverzeichnisses aus. Der Test der installierten CLI prüft Unicode-Dateinamen im Archiv, Pfade mit Leerzeichen, die Groß-/Kleinschreibung bei Verbotsregeln sowie scan/check/diff-Ausgaben und Exitcodes 0/1/2. Die Tests verwenden nur lokal erzeugte synthetische Daten; die Vorbereitung der Bauwerkzeuge kann Netzwerkzugriff benötigen.
+
+Nach dem Build: `python .github/scripts/check_install.py dist/release_fence-0.1.0-py3-none-any.whl`.

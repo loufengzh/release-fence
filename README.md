@@ -135,9 +135,19 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 python -m pip wheel --no-deps --no-build-isolation . -w dist
 ```
 
-CI tests Python 3.10–3.13, builds a wheel, installs it in a clean virtual environment,
-and runs the installed console script on the synthetic archive. Tests create all
-fixtures locally; they require no network, external archive samples or credentials.
+CI tests Python 3.10–3.13 on Linux and Python 3.12 on Windows and macOS. Each
+job builds a wheel, installs it without network access in a clean temporary virtual
+environment, and runs the full test suite outside the checkout against that wheel.
+The installed CLI smoke covers Unicode archive member names, paths containing
+spaces, case-sensitive forbidden rules, scan/check/diff output and exit codes
+0/1/2. Tests create all fixtures locally; they require no network, external archive
+samples or credentials. Preparing build tooling may require network access.
+
+To repeat the installed-wheel check locally after building:
+
+```sh
+python .github/scripts/check_install.py dist/release_fence-0.1.0-py3-none-any.whl
+```
 
 MIT licensed. Contributions should include a small synthetic fixture, expected
 exit code, and regression test. See [CONTRIBUTING.md](CONTRIBUTING.md).

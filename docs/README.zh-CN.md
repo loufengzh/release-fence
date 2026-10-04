@@ -27,3 +27,7 @@ release-fence diff before.json before.json
 文件记录和内容差异忽略时间戳、权限、压缩方式和空目录；显式目录条目仍可能改变禁止路径违规结果。`diff` 只比较普通文件的内容和长度，不比较策略违规。改名表现为删除加新增。这不是完整 ZIP 规范验证器，也不是恶意软件扫描、密钥检测或来源认证工具。对于不可信输入，请额外使用操作系统隔离和资源限制。
 
 完整格式和保守解析规则见 [英文主文档](../README.md)。测试：`PYTHONPATH=src python -m unittest discover -s tests -v`。
+
+CI 在 Linux 上测试 Python 3.10–3.13，在 Windows 和 macOS 上测试 Python 3.12。每个任务构建 wheel，在干净的临时虚拟环境中离线安装，并在源码目录之外运行完整测试。已安装的命令行工具还会验证 Unicode 成员名、带空格的路径、区分大小写的禁止规则，以及 scan/check/diff 的输出和退出码 0/1/2。测试只使用本地生成的合成数据；准备构建工具可能需要网络。
+
+构建后可运行：`python .github/scripts/check_install.py dist/release_fence-0.1.0-py3-none-any.whl`。
