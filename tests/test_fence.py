@@ -67,9 +67,24 @@ class FenceTests(unittest.TestCase):
                 scan(self.path, p)
 
     def test_paths(self):
-        for name in ("/a", "../a", "a/../b", "a//b", "./a", "a\\b", "C:a", "a\x01b"):
+        for name in ("/a", "../a", "a/../b", "a//b", "./a", "C:a", "a\x01b"):
             with self.subTest(name=name), self.assertRaises(FenceError):
                 scan(self.archive([(name, b"x")]))
+
+    def test_raw_backslash_member_path(self):
+        # ZipInfo normalizes os.sep on Windows. Patch both filename records so
+        # this fixture actually contains a forbidden backslash on every OS.
+        self.archive([("a/b", b"x")])
+        raw = self.path.read_bytes()
+        self.assertEqual(raw.count(b"a/b"), 2)
+        self.path.write_bytes(raw.replace(b"a/b", b"a\\b"))
+        with self.assertRaisesRegex(FenceError, "noncanonical member path"):
+            scan(self.path)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(main(["scan", str(self.path)]), 2)
+        self.assertEqual(out.getvalue(), "")
+        self.assertIn("noncanonical member path", err.getvalue())
 
     def test_duplicates_and_parent_files(self):
         for pairs in ([('a', b'x'), ('a', b'y')], [('a/', b''), ('a', b'x')], [('a', b'x'), ('a/b', b'y')]):
