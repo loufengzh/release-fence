@@ -31,3 +31,5 @@ release-fence diff before.json before.json
 CI 在 Linux 上测试 Python 3.10–3.13，在 Windows 和 macOS 上测试 Python 3.12。每个任务构建 wheel，在干净的临时虚拟环境中离线安装，并在源码目录之外运行完整测试。已安装的命令行工具还会验证 Unicode 成员名、带空格的路径、区分大小写的禁止规则，以及 scan/check/diff 的输出和退出码 0/1/2。测试只使用本地生成的合成数据；准备构建工具可能需要网络。
 
 构建后可运行：`python .github/scripts/check_install.py dist/release_fence-0.1.0-py3-none-any.whl`。
+
+`scan`、`check` 或 `diff` 的 JSON 结果输出写入或刷新失败时返回退出码 2，包括设备已满或管道已关闭的情况。已写出的内容无法撤回；发生任何 I/O 错误后，请丢弃不完整的输出。空 ZIP 可以包含标准归档注释，但结束记录前不得包含未计入的数据。

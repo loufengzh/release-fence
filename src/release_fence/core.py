@@ -120,6 +120,8 @@ def _guard(stream):
         raise FenceError("ZIP64 archives are unsupported")
     if count > MAX_ENTRIES or central_size > MAX_CENTRAL or offset + central_size != absolute:
         raise FenceError("invalid or oversized central directory")
+    if count == 0 and offset != 0:
+        raise FenceError("unaccounted local bytes in empty archive")
     stream.seek(0)
     if stream.read(4) != (b"PK\x03\x04" if count else b"PK\x05\x06"):
         raise FenceError("prefixed/self-extracting archives are unsupported")

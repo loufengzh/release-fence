@@ -1,6 +1,7 @@
 """Machine-readable command-line entry point."""
 import argparse
 import json
+import os
 import sys
 from .core import FenceError, Policy, diff, load_json, scan
 
@@ -24,11 +25,28 @@ def main(argv=None):
             policy = Policy.from_dict(load_json(args.policy)) if args.policy else Policy()
             result = scan(args.archive, policy)
             status = 1 if args.command == "check" and result["violations"] else 0
-        print(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2))
-        return status
     except (FenceError, OSError) as exc:
         print(f"release-fence: {exc}", file=sys.stderr)
         return 2
+    try:
+        print(json.dumps(result, ensure_ascii=True, sort_keys=True, indent=2))
+        sys.stdout.flush()
+    except OSError as exc:
+        # Prevent interpreter shutdown from retrying a failed buffered sink and
+        # replacing the documented I/O error status with 120.
+        try:
+            target = sys.stdout.fileno()
+            sink = os.open(os.devnull, os.O_WRONLY)
+            if sink != target:
+                try:
+                    os.dup2(sink, target)
+                finally:
+                    os.close(sink)
+        except (OSError, ValueError, AttributeError):
+            sys.stdout = None
+        print(f"release-fence: output failed ({type(exc).__name__})", file=sys.stderr)
+        return 2
+    return status
 
 
 if __name__ == "__main__":

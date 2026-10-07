@@ -151,3 +151,5 @@ python .github/scripts/check_install.py dist/release_fence-0.1.0-py3-none-any.wh
 
 MIT licensed. Contributions should include a small synthetic fixture, expected
 exit code, and regression test. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+JSON result output write or flush failures in `scan`, `check`, or `diff` return exit 2, including a full output device or a closed pipe. Output already written cannot be retracted; discard incomplete output after any I/O failure. Empty ZIPs may have a standard archive comment, but no unaccounted bytes before the end record.

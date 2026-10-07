@@ -2,6 +2,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import stat
 import struct
@@ -49,6 +50,23 @@ class FenceTests(unittest.TestCase):
         self.assertEqual(len(result["files"]), 1)
         self.assertEqual(result["total_bytes"], 0)
         self.assertEqual(scan(self.archive([]))["files"], [])
+
+    def test_empty_archive_local_bytes_rejected(self):
+        def end(offset):
+            return struct.pack("<4s4H2IH", b"PK\x05\x06", 0, 0, 0, 0, 0, offset, 0)
+        prefix = end(0) + b"unaccounted content"
+        self.path.write_bytes(prefix + end(len(prefix)))
+        with self.assertRaisesRegex(FenceError, "unaccounted local bytes"):
+            scan(self.path)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(main(["scan", str(self.path)]), 2)
+        self.assertEqual(out.getvalue(), "")
+
+    def test_empty_archive_comment_accepted(self):
+        with zipfile.ZipFile(self.path, "w") as archive:
+            archive.comment = b"ordinary release comment"
+        self.assertEqual(scan(self.path)["files"], [])
 
     def test_order_and_timestamp_independent(self):
         first = scan(self.archive([("b", b"2"), ("a", b"1")]))
@@ -254,6 +272,45 @@ class FenceTests(unittest.TestCase):
                 self.assertIn('release-fence:', err.getvalue())
             else:
                 json.loads(out.getvalue())
+
+    def test_output_write_and_flush_failures(self):
+        self.archive()
+        class FailedOutput(io.StringIO):
+            def __init__(self, fail_write):
+                super().__init__()
+                self.fail_write = fail_write
+            def write(self, value):
+                if self.fail_write:
+                    raise BrokenPipeError("synthetic closed pipe")
+                return super().write(value)
+            def flush(self):
+                raise OSError("synthetic full device")
+        for fail_write in (True, False):
+            err = io.StringIO()
+            with self.subTest(fail_write=fail_write), contextlib.redirect_stdout(FailedOutput(fail_write)), contextlib.redirect_stderr(err):
+                self.assertEqual(main(["scan", str(self.path)]), 2)
+            self.assertIn("release-fence: output failed", err.getvalue())
+
+    def test_closed_pipe_exit(self):
+        self.archive()
+        reader, writer = os.pipe()
+        os.close(reader)
+        try:
+            proc = subprocess.run([sys.executable, "-m", "release_fence", "scan", str(self.path)], stdout=writer, stderr=subprocess.PIPE, text=True)
+        finally:
+            os.close(writer)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertIn("release-fence: output failed", proc.stderr)
+        self.assertNotIn("Exception ignored", proc.stderr)
+
+    @unittest.skipUnless(os.path.exists("/dev/full"), "requires full output device")
+    def test_buffered_full_device_exit(self):
+        self.archive()
+        with open("/dev/full", "w") as output:
+            proc = subprocess.run([sys.executable, "-m", "release_fence", "scan", str(self.path)], stdout=output, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertIn("release-fence: output failed", proc.stderr)
+        self.assertNotIn("Exception ignored", proc.stderr)
 
     def test_module_entrypoint(self):
         proc = subprocess.run([sys.executable, '-m', 'release_fence', '--help'], capture_output=True, text=True)
