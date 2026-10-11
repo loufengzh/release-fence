@@ -28,3 +28,11 @@ own authenticated channel.
 Current limitations are intentional: no ZIP64, TAR, recursive archives, stdin,
 user plugins or built-in language profiles. Any future format support needs its
 own resource model, deterministic serialization contract and synthetic tests.
+
+Data descriptors may have an optional `0x08074b50` signature, as described in
+[PKWARE APPNOTE 4.3.9.3](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT).
+A CRC32 may equal that marker. The parser first matches the complete unsigned
+CRC/size tuple, then checks the signed form. Reads are bounded by the start of the
+central directory; the existing contiguous-span check rejects gaps and overlaps.
+Both interpretations cannot match under the 64 MiB archive ceiling: that would
+require a compressed size of `0x08074b50` (more than 128 MiB).

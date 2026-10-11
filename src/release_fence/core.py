@@ -251,14 +251,18 @@ def scan(path, policy=None):
                     if crc != info.CRC:
                         raise FenceError("CRC mismatch")
                     if flags & 8:
-                        descriptor = stream.read(4)
-                        if descriptor == b"PK\x07\x08":
-                            descriptor = stream.read(12)
+                        expected = struct.pack("<III", info.CRC, info.compress_size, info.file_size)
+                        descriptor = stream.read(min(12, central - end))
+                        # A CRC can equal the optional signature. Match all three
+                        # unsigned fields before considering the signed form.
+                        if descriptor == expected:
+                            end += 12
+                        elif descriptor[:4] == b"PK\x07\x08":
+                            descriptor += stream.read(min(4, max(0, central - end - 12)))
+                            if descriptor[4:] != expected:
+                                raise FenceError("invalid data descriptor")
                             end += 16
                         else:
-                            descriptor += stream.read(8)
-                            end += 12
-                        if len(descriptor) != 12 or struct.unpack("<III", descriptor) != (info.CRC, info.compress_size, info.file_size):
                             raise FenceError("invalid data descriptor")
                     if end > central:
                         raise FenceError("member descriptor exceeds local section")

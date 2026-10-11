@@ -55,3 +55,5 @@ CI testet Python 3.10–3.13 unter Linux und Python 3.12 unter Windows und macOS
 Nach dem Build: `python .github/scripts/check_install.py dist/release_fence-0.1.0-py3-none-any.whl`.
 
 Fehler beim Schreiben oder Leeren des JSON-Ergebnispuffers von `scan`, `check` oder `diff` führen zu Exit-Code 2, auch bei vollem Ausgabegerät oder geschlossener Pipe. Bereits geschriebene Daten können nicht zurückgenommen werden; unvollständige Ausgabe nach jedem E/A-Fehler verwerfen. Leere ZIP-Dateien dürfen einen regulären Archivkommentar enthalten, aber keine unberücksichtigten Bytes vor dem Enddatensatz.
+
+ZIP-Datendeskriptoren werden mit und ohne optionale Signatur akzeptiert, auch wenn der CRC32-Wert selbst `0x08074b50` ist. CRC und beide Größen müssen mit dem Zentralverzeichnis übereinstimmen; abgeschnittene oder widersprüchliche Deskriptoren werden abgewiesen.

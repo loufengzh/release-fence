@@ -178,6 +178,61 @@ class FenceTests(unittest.TestCase):
         self.path.write_bytes(stream.getvalue())
         self.assertEqual(scan(self.path)['total_bytes'], 500)
 
+    def descriptor_archive(self, payload, method, signed=True):
+        class Unseekable(io.BytesIO):
+            def seek(self, *args):
+                raise io.UnsupportedOperation()
+        stream = Unseekable()
+        with zipfile.ZipFile(stream, "w", compression=method) as archive:
+            archive.writestr("a", payload)
+        raw = bytearray(stream.getvalue())
+        central = struct.unpack_from("<I", raw, len(raw) - 6)[0]
+        descriptor = central - 16
+        if not signed:
+            del raw[descriptor:descriptor + 4]
+            struct.pack_into("<I", raw, len(raw) - 6, central - 4)
+        self.path.write_bytes(raw)
+        return descriptor
+
+    def test_descriptor_signature_crc_collision(self):
+        # This four-byte payload has CRC32 0x08074b50, the optional marker.
+        collision = bytes.fromhex("ac0a7ad5")
+        for method in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+            for signed in (False, True):
+                for payload in (collision, b"ordinary", b""):
+                    with self.subTest(method=method, signed=signed, payload=payload):
+                        self.descriptor_archive(payload, method, signed)
+                        with zipfile.ZipFile(self.path) as archive:
+                            self.assertEqual(archive.read("a"), payload)
+                        inventory = scan(self.path)
+                        self.assertEqual(inventory["total_bytes"], len(payload))
+                        self.assertEqual(inventory["files"][0]["sha256"],
+                                         hashlib.sha256(payload).hexdigest())
+
+    def test_collision_descriptor_corruption_and_truncation(self):
+        for method in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+            for signed in (False, True):
+                for field in (0, 4, 8):
+                    with self.subTest(method=method, signed=signed, field=field):
+                        offset = self.descriptor_archive(bytes.fromhex("ac0a7ad5"), method, signed)
+                        raw = bytearray(self.path.read_bytes())
+                        raw[offset + (4 if signed else 0) + field] ^= 1
+                        self.path.write_bytes(raw)
+                        with self.assertRaises(FenceError):
+                            scan(self.path)
+                for removed in range(1, 16 if signed else 12):
+                    with self.subTest(method=method, signed=signed, removed=removed):
+                        self.descriptor_archive(bytes.fromhex("ac0a7ad5"), method, signed)
+                        raw = bytearray(self.path.read_bytes())
+                        central = struct.unpack_from("<I", raw, len(raw) - 6)[0]
+                        del raw[central - removed:central]
+                        struct.pack_into("<I", raw, len(raw) - 6, central - removed)
+                        self.path.write_bytes(raw)
+                        out, err = io.StringIO(), io.StringIO()
+                        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                            self.assertEqual(main(["scan", str(self.path)]), 2)
+                        self.assertEqual(out.getvalue(), "")
+
     def test_deflate_chunk_boundaries(self):
         for size in (65535, 65536, 65537, 131072, 131073):
             with self.subTest(size=size):
