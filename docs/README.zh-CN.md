@@ -35,3 +35,5 @@ CI 在 Linux 上测试 Python 3.10–3.13，在 Windows 和 macOS 上测试 Pyth
 `scan`、`check` 或 `diff` 的 JSON 结果输出写入或刷新失败时返回退出码 2，包括设备已满或管道已关闭的情况。已写出的内容无法撤回；发生任何 I/O 错误后，请丢弃不完整的输出。空 ZIP 可以包含标准归档注释，但结束记录前不得包含未计入的数据。
 
 ZIP 数据描述符可以带有或不带有可选签名，即使 CRC32 本身等于 `0x08074b50` 也能正确处理。CRC 和两个大小字段必须与中央目录一致；截断或不一致的描述符会被拒绝。
+
+Python API `scan(path, policy)` 接受 `Policy` 实例或 `None`（默认策略）。其他值（包括 `False`、`0`、空字符串和空集合）会引发 `FenceError`，不会静默使用默认策略。命令行 JSON 策略文件仍由 `Policy.from_dict` 验证，其格式没有变化。

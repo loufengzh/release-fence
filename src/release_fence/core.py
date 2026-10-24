@@ -159,7 +159,8 @@ def scan(path, policy=None):
 
     Resource limits stop scanning rather than returning partial hashes.
     """
-    policy = policy or Policy()
+    if policy is None:
+        policy = Policy()
     if not isinstance(policy, Policy):
         raise FenceError("policy must be a Policy instance")
     try:

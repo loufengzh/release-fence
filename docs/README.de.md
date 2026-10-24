@@ -57,3 +57,5 @@ Nach dem Build: `python .github/scripts/check_install.py dist/release_fence-0.1.
 Fehler beim Schreiben oder Leeren des JSON-Ergebnispuffers von `scan`, `check` oder `diff` führen zu Exit-Code 2, auch bei vollem Ausgabegerät oder geschlossener Pipe. Bereits geschriebene Daten können nicht zurückgenommen werden; unvollständige Ausgabe nach jedem E/A-Fehler verwerfen. Leere ZIP-Dateien dürfen einen regulären Archivkommentar enthalten, aber keine unberücksichtigten Bytes vor dem Enddatensatz.
 
 ZIP-Datendeskriptoren werden mit und ohne optionale Signatur akzeptiert, auch wenn der CRC32-Wert selbst `0x08074b50` ist. CRC und beide Größen müssen mit dem Zentralverzeichnis übereinstimmen; abgeschnittene oder widersprüchliche Deskriptoren werden abgewiesen.
+
+Die Python-API `scan(path, policy)` akzeptiert eine `Policy`-Instanz oder `None` (Standardrichtlinie). Andere Werte, darunter `False`, `0`, leere Zeichenketten und Sammlungen, lösen `FenceError` aus, statt stillschweigend die Standardrichtlinie zu wählen. JSON-Richtliniendateien der CLI werden weiterhin durch `Policy.from_dict` geprüft; ihr Format bleibt unverändert.

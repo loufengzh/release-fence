@@ -155,3 +155,5 @@ exit code, and regression test. See [CONTRIBUTING.md](CONTRIBUTING.md).
 JSON result output write or flush failures in `scan`, `check`, or `diff` return exit 2, including a full output device or a closed pipe. Output already written cannot be retracted; discard incomplete output after any I/O failure. Empty ZIPs may have a standard archive comment, but no unaccounted bytes before the end record.
 
 ZIP data descriptors are accepted with or without the optional signature, including when the CRC32 itself equals `0x08074b50`. CRC and both sizes must match the central directory; truncated or inconsistent descriptors are rejected.
+
+The Python `scan(path, policy)` API accepts a `Policy` instance or `None` (the default policy). Other values, including `False`, `0`, and empty strings or collections, raise `FenceError` rather than silently selecting defaults. JSON CLI policy files are still validated by `Policy.from_dict`; this change does not alter their format.

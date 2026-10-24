@@ -38,6 +38,27 @@ class FenceTests(unittest.TestCase):
         struct.pack_into(fmt, raw, offset, value)
         self.path.write_bytes(raw)
 
+    def test_scan_rejects_falsey_nonpolicy_values(self):
+        path = self.archive()
+        for value in (False, 0, 0.0, "", [], {}, (), set()):
+            with self.subTest(value=repr(value)):
+                with self.assertRaisesRegex(FenceError, "policy must be a Policy instance"):
+                    scan(path, value)
+
+    def test_scan_preserves_falsey_policy_subclass(self):
+        class FalseyPolicy(Policy):
+            def __bool__(self):
+                return False
+        path = self.archive()
+        policy = FalseyPolicy(required=("LICENSE",))
+        self.assertEqual(scan(path, policy), scan(path, Policy(required=("LICENSE",))))
+        self.assertTrue(scan(path, policy)["violations"])
+
+    def test_scan_none_uses_default_policy(self):
+        path = self.archive()
+        self.assertEqual(scan(path, None), scan(path, Policy()))
+        self.assertEqual(scan(path), scan(path, Policy()))
+
     def test_inventory_hashes_order_total(self):
         result = scan(self.archive())
         self.assertEqual(result["total_bytes"], 10)
