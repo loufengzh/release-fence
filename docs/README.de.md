@@ -59,3 +59,5 @@ Fehler beim Schreiben oder Leeren des JSON-Ergebnispuffers von `scan`, `check` o
 ZIP-Datendeskriptoren werden mit und ohne optionale Signatur akzeptiert, auch wenn der CRC32-Wert selbst `0x08074b50` ist. CRC und beide Größen müssen mit dem Zentralverzeichnis übereinstimmen; abgeschnittene oder widersprüchliche Deskriptoren werden abgewiesen.
 
 Die Python-API `scan(path, policy)` akzeptiert eine `Policy`-Instanz oder `None` (Standardrichtlinie). Andere Werte, darunter `False`, `0`, leere Zeichenketten und Sammlungen, lösen `FenceError` aus, statt stillschweigend die Standardrichtlinie zu wählen. JSON-Richtliniendateien der CLI werden weiterhin durch `Policy.from_dict` geprüft; ihr Format bleibt unverändert.
+
+Die CLI verwendet die Standardrichtlinie nur, wenn `--policy` weggelassen wird. Ein ausdrücklich leerer Pfad (`--policy ""` oder `--policy=`) ist ein Eingabefehler: `scan` und `check` enden mit Code 2 ohne Inventar. Eine Richtliniendatei mit dem Inhalt `{}` wählt weiterhin ausdrücklich die Standardregeln.

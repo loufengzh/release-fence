@@ -22,7 +22,7 @@ def main(argv=None):
             result = diff(load_json(args.before), load_json(args.after))
             status = 1 if any(result.values()) else 0
         else:
-            policy = Policy.from_dict(load_json(args.policy)) if args.policy else Policy()
+            policy = Policy.from_dict(load_json(args.policy)) if args.policy is not None else Policy()
             result = scan(args.archive, policy)
             status = 1 if args.command == "check" and result["violations"] else 0
     except (FenceError, OSError) as exc:

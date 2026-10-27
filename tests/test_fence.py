@@ -38,6 +38,39 @@ class FenceTests(unittest.TestCase):
         struct.pack_into(fmt, raw, offset, value)
         self.path.write_bytes(raw)
 
+    def test_cli_empty_policy_path_is_not_omitted(self):
+        archive = self.archive()
+        for command in ("scan", "check"):
+            for option in (["--policy", ""], ["--policy="]):
+                with self.subTest(command=command, option=option):
+                    out, err = io.StringIO(), io.StringIO()
+                    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                        self.assertEqual(main([command, str(archive), *option]), 2)
+                    self.assertEqual(out.getvalue(), "")
+                    self.assertIn("release-fence:", err.getvalue())
+
+    def test_cli_omitted_and_explicit_default_policy(self):
+        archive = self.archive()
+        policy = self.root / "empty-policy.json"
+        policy.write_text("{}", encoding="utf-8")
+        required = self.root / "required-policy.json"
+        required.write_text('{"required": ["LICENSE"]}', encoding="utf-8")
+        for command in ("scan", "check"):
+            reports = []
+            for option in ([], ["--policy", str(policy)]):
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    self.assertEqual(main([command, str(archive), *option]), 0)
+                self.assertEqual(err.getvalue(), "")
+                reports.append(json.loads(out.getvalue()))
+            self.assertEqual(*reports)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(main([command, str(archive), "--policy", str(required)]),
+                                 1 if command == "check" else 0)
+            self.assertEqual(json.loads(out.getvalue())["violations"],
+                             ["missing required path: LICENSE"])
+
     def test_scan_rejects_falsey_nonpolicy_values(self):
         path = self.archive()
         for value in (False, 0, 0.0, "", [], {}, (), set()):

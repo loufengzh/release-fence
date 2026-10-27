@@ -157,3 +157,5 @@ JSON result output write or flush failures in `scan`, `check`, or `diff` return 
 ZIP data descriptors are accepted with or without the optional signature, including when the CRC32 itself equals `0x08074b50`. CRC and both sizes must match the central directory; truncated or inconsistent descriptors are rejected.
 
 The Python `scan(path, policy)` API accepts a `Policy` instance or `None` (the default policy). Other values, including `False`, `0`, and empty strings or collections, raise `FenceError` rather than silently selecting defaults. JSON CLI policy files are still validated by `Policy.from_dict`; this change does not alter their format.
+
+The CLI uses the default policy only when `--policy` is omitted. An explicitly empty path (`--policy ""` or `--policy=`) is an input error: both `scan` and `check` exit 2 without an inventory. A policy file containing `{}` still explicitly selects the default rules.

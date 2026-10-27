@@ -37,3 +37,5 @@ CI 在 Linux 上测试 Python 3.10–3.13，在 Windows 和 macOS 上测试 Pyth
 ZIP 数据描述符可以带有或不带有可选签名，即使 CRC32 本身等于 `0x08074b50` 也能正确处理。CRC 和两个大小字段必须与中央目录一致；截断或不一致的描述符会被拒绝。
 
 Python API `scan(path, policy)` 接受 `Policy` 实例或 `None`（默认策略）。其他值（包括 `False`、`0`、空字符串和空集合）会引发 `FenceError`，不会静默使用默认策略。命令行 JSON 策略文件仍由 `Policy.from_dict` 验证，其格式没有变化。
+
+只有省略 `--policy` 时，CLI 才使用默认策略。显式传入空路径（`--policy ""` 或 `--policy=`）属于输入错误：`scan` 和 `check` 均以状态码 2 退出，不输出清单。内容为 `{}` 的策略文件仍会显式选择默认规则。
